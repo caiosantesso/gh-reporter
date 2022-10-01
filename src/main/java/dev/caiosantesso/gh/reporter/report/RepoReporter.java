@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import static dev.caiosantesso.gh.reporter.api.CodeSearchEndpoint.SearchResult;
 import static java.util.Objects.requireNonNull;
@@ -26,8 +25,6 @@ public class RepoReporter {
 
     private static final Logger logger = Logger.getLogger(RepoReporter.class.getName());
 
-    private record RepoBranches(Repo repo, Collection<BranchesEndpoint.Branch> branches) {}
-
     public RepoReporter(String token, String org) {
         this.client = requireNonNull(HttpClient.newHttpClient());
         this.token = requireNonNull("Bearer %s".formatted(token));
@@ -35,19 +32,7 @@ public class RepoReporter {
     }
 
     public void saveAllBranchesToCsv() {
-        save(() -> {
-            var branches = requestAllBranches();
-            return toCsvRows(branches.stream());
-        }, "branches");
-    }
-
-    public void saveMatchingBranchesToCsv(String branchName) {
-        requireNonNull(branchName);
-
-        save(() -> {
-            var reposWithBranches = requestAllBranches();
-            return filterByBranch(reposWithBranches.stream(), branchName);
-        }, "branches/%s/".formatted(branchName));
+        save(this::requestAllBranches, "branches");
     }
 
     public void saveWithMatchingContentToCsv(String term) {
@@ -63,7 +48,7 @@ public class RepoReporter {
         printFooter(start, csvRows.size());
     }
 
-    private List<RepoBranches> requestAllBranches() {
+    private List<String> requestAllBranches() {
         var repoEndpoint = new ReposEndpoint(client, token, org);
         var repos = repoEndpoint.fetchAll();
 
@@ -72,31 +57,10 @@ public class RepoReporter {
         return repos
                 .stream()
                 .parallel()
-                .map(repo -> {
-                    var branches = branchEndpoint.fetchAllFor(repo);
-                    return new RepoBranches(repo, branches);
-                })
-                .toList();
-    }
-
-    private List<String> filterByBranch(Stream<RepoBranches> reposWithBranches, String branchName) {
-        return reposWithBranches
-                .filter(r -> r.branches
+                .flatMap(repo -> branchEndpoint
+                        .fetchAllFor(repo)
                         .stream()
-                        .anyMatch(branch -> branchName.equals(branch.name())))
-                .map(r -> r.repo.name())
-                .sorted()
-                .toList();
-    }
-
-    private List<String> toCsvRows(Stream<RepoBranches> branches) {
-        return branches
-                .flatMap(repo -> repo
-                        .branches()
-                        .stream()
-                        .map(branch -> "%s,%s".formatted(repo
-                                .repo()
-                                .name(), branch.name())))
+                        .map(branch -> "%s,%s".formatted(repo.name(), branch.name())))
                 .toList();
     }
 
