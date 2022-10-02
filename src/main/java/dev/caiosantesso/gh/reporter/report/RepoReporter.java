@@ -35,10 +35,13 @@ public class RepoReporter {
         save(this::requestAllBranches, "branches");
     }
 
-    public void saveWithMatchingContentToCsv(String term) {
-        requireNonNull(term);
+    public void saveWithMatchingContentToCsv(String content, String filename) {
+        requireNonNull(content);
 
-        save(() -> searchPackageDotJsonInReposFor(term), "in_package_json");
+        String dir = "with_content";
+        if (filename != null)
+            dir += "/in_%s".formatted(filename);
+        save(() -> searchFileFor(content, filename), dir);
     }
 
     private void save(Supplier<List<String>> csvRowsSupplier, String dir) {
@@ -64,9 +67,9 @@ public class RepoReporter {
                 .toList();
     }
 
-    private List<String> searchPackageDotJsonInReposFor(String term) {
+    private List<String> searchFileFor(String content, String filename) {
         var codeSearch = new CodeSearchEndpoint(client, token, org);
-        var searchResults = codeSearch.searchOnPackageDotJson(term);
+        var searchResults = codeSearch.searchInFile(content, filename);
         return searchResults
                 .stream()
                 .map(SearchResult::items)

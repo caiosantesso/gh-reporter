@@ -24,7 +24,7 @@ import static java.util.Objects.requireNonNull;
 public class RequestBuilder {
     private final HttpClient client;
     private final String token;
-    private static final String authorization = "Authorization";
+    private static final String AUTH_HEADER = "Authorization";
 
     public RequestBuilder(HttpClient client, String token) {
         this.client = requireNonNull(client);
@@ -49,16 +49,13 @@ public class RequestBuilder {
 
     }
 
-
-    private HttpResponse<Void> requestNumberOfPages(String seedUri, Header header) {
+    private HttpResponse<Void> requestNumberOfPages(String seedUri, Header additionalHeader) {
         HttpRequest.Builder builder = HttpRequest
                 .newBuilder(URI.create(seedUri))
-                .header(authorization, token);
-        if (header != null)
-            builder.header(header.key(), header.value());
+                .header(AUTH_HEADER, token);
 
-        var request = builder
-                .build();
+        if (additionalHeader != null) builder.header(additionalHeader.key(), additionalHeader.value());
+        var request = builder.build();
 
         try {
             return client.send(request, discarding());
@@ -67,29 +64,48 @@ public class RequestBuilder {
         }
     }
 
-    public <T> Collection<T> requestAll(Collection<URI> uris,
-                                        Function<InputStream, List<T>> typedParser) {
+    public <T> Collection<T> requestAll(Collection<URI> uris, Function<InputStream, List<T>> typedParser) {
         var repos = new CopyOnWriteArrayList<T>();
 
         CompletableFuture
                 .allOf(uris
                         .stream()
                         .map(HttpRequest::newBuilder)
-                        .map(req -> req.header(authorization, token))
+                        .map(req -> req.header(AUTH_HEADER, token))
                         .map(HttpRequest.Builder::build)
                         .map(request -> client
                                 .sendAsync(request, ofInputStream())
-                                .thenApply(this::handleResponse)
+                                .thenApply(this::validateResponse)
                                 .thenApply(typedParser)
-                                .thenAccept(repos::addAll)
-                        )
+                                .thenAccept(repos::addAll))
                         .toArray(CompletableFuture<?>[]::new))
                 .join();
 
         return repos;
     }
 
-    private InputStream handleResponse(HttpResponse<InputStream> response) {
+    public <T> Collection<T> requestForTextMatch(Collection<URI> uris, Function<InputStream, T> typedParser) {
+        var repos = new CopyOnWriteArrayList<T>();
+
+        CompletableFuture
+                .allOf(uris
+                        .stream()
+                        .map(HttpRequest::newBuilder)
+                        .map(req -> req.header(AUTH_HEADER, token))
+                        .map(req -> req.header("Accept", "application/vnd.github.text-match+json"))
+                        .map(HttpRequest.Builder::build)
+                        .map(request -> client
+                                .sendAsync(request, ofInputStream())
+                                .thenApply(this::validateResponse)
+                                .thenApply(typedParser)
+                                .thenApply(repos::add))
+                        .toArray(CompletableFuture<?>[]::new))
+                .join();
+
+        return repos;
+    }
+
+    private InputStream validateResponse(HttpResponse<InputStream> response) {
         var body = response.body();
         if (response.statusCode() == 200) return body;
         try {
@@ -97,28 +113,5 @@ public class RequestBuilder {
         } catch (IOException e) {
             throw new HttpException(e);
         }
-    }
-
-    public <T> Collection<T> request(Collection<URI> uris, Function<InputStream, T> typedParser) {
-
-        var repos = new CopyOnWriteArrayList<T>();
-
-        CompletableFuture
-                .allOf(uris
-                        .stream()
-                        .map(HttpRequest::newBuilder)
-                        .map(req -> req.header(authorization, token))
-                        .map(req -> req.header("Accept", "application/vnd.github.text-match+json"))
-                        .map(HttpRequest.Builder::build)
-                        .map(request -> client
-                                .sendAsync(request, ofInputStream())
-                                .thenApply(this::handleResponse)
-                                .thenApply(typedParser)
-                                .thenApply(repos::add)
-                        )
-                        .toArray(CompletableFuture<?>[]::new))
-                .join();
-
-        return repos;
     }
 }

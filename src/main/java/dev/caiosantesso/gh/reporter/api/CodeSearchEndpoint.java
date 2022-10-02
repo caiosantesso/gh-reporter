@@ -15,7 +15,6 @@ import java.util.List;
 public class CodeSearchEndpoint {
     private final RequestBuilder requests;
     private final String org;
-    private static final String urlTemplate = "https://api.github.com/search/code?q=%s";
 
     public record TextMatch(String fragment, String property) {}
 
@@ -23,22 +22,23 @@ public class CodeSearchEndpoint {
 
     public record SearchResult(List<Item> items) {}
 
-
     public CodeSearchEndpoint(HttpClient client, String token, String org) {
         this.org = org;
         this.requests = new RequestBuilder(client, token);
     }
 
-    public Collection<SearchResult> searchOnPackageDotJson(String term) {
-        String uri = composeUri(term);
+    public Collection<SearchResult> searchInFile(String content, String filename) {
+        var uri = composeUri(content, filename);
         var uris = requests.pagesToRequest(uri, new Header("Accept", "application/vnd.github.text-match+json"));
         if (uris.isEmpty()) throw new IllegalArgumentException("At least one URI is required");
-        return requests.request(uris, Json::parseTextMatches);
+        return requests.requestForTextMatch(uris, Json::parseTextMatches);
     }
 
-    private String composeUri(String term) {
-        var query = String.join(" ", term, "org:" + org, "filename:package.json", "in:file");
+    private String composeUri(String content, String filename) {
+        var query = String.join(" ", content, "org:" + org, "in:file");
+        if (filename != null) query += " filename:%s".formatted(filename);
+
         var queryEncoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
-        return urlTemplate.formatted(queryEncoded);
+        return "https://api.github.com/search/code?q=%s".formatted(queryEncoded);
     }
 }
