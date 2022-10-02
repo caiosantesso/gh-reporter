@@ -30,20 +30,23 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.10.1</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jlink-plugin</artifactId>
         <version>3.1.0</version>
+        <extensions>true</extensions>
         <configuration>
-          <mainClass>dev.caiosantesso.gh.reporter.Main</mainClass>
-          <cleanupDaemonThreads>false</cleanupDaemonThreads>
-          <systemProperties>
-            <systemProperty>
-              <key>jdk.httpclient.HttpClient.log</key>
-              <value>requests</value>
-            </systemProperty>
-          </systemProperties>
+          <noHeaderFiles/>
+          <noManPages/>
+          <stripDebug/>
+          <compress>2</compress>
+          <launcher>ghreporter=gh.reporter/dev.caiosantesso.gh.reporter.Main</launcher>
         </configuration>
       </plugin>
+
     </plugins>
   </build>
 
