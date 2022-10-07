@@ -43,7 +43,11 @@
           <noManPages/>
           <stripDebug/>
           <compress>2</compress>
-          <launcher>ghreporter=gh.reporter/dev.caiosantesso.gh.reporter.Main</launcher>
+          <launcher>gh-reporter=gh.reporter/dev.caiosantesso.gh.reporter.Main</launcher>
+          <!-- TODO Should be relative to the slim JVM -->
+          <addOptions>
+            <addOption>-Djava.util.logging.config.file=src/main/resources/logger.properties</addOption>
+          </addOptions>
         </configuration>
       </plugin>
 

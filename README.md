@@ -29,7 +29,31 @@ Toy program to fetch GH all repos from certain org.
    ```shell
    mvn compile jlink:jlink
    ```
-1. Run it, setting the env var `GITHUB_TOKEN` with your [PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
+1. Run it, setting the env var `GITHUB_TOKEN` with
+   your [PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+   .
    ```shell
-   GITHUB_TOKEN=<> ./target/maven-jlink/default/bin/gh-reporter --org <gh_org>
+   GITHUB_TOKEN=<PAT> ./target/maven-jlink/default/bin/gh-reporter --org <GH_ORG>
    ```
+
+## Options
+
+### content and filename
+
+Uses GH API to search for the content. Should `filename` be set then the searching will be narrowed down to that file in
+each GH repo.
+
+```shell
+   GITHUB_TOKEN=<PAT> ./target/maven-jlink/default/bin/gh-reporter \
+   --org <GH_ORG> \
+   --content "license MIT" \
+   --filename package.json
+```
+
+Would be roughly equivalent to:
+
+```shell
+  curl -H "Authorization: Bearer <PAT>" \
+  -H "Accept: application/vnd.github.text-match+json" \
+  "https://api.github.com/search/code?q=license+mit+filename%3Apackage.json+in%3Afile+org%3A<GH_ORG>"
+```

@@ -2,7 +2,7 @@ package dev.caiosantesso.gh.reporter.api;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import dev.caiosantesso.gh.reporter.api.ReposEndpoint.Repo;
-import dev.caiosantesso.gh.reporter.http.RequestBuilder;
+import dev.caiosantesso.gh.reporter.http.RequestService;
 import dev.caiosantesso.gh.reporter.http.header.Header;
 import dev.caiosantesso.gh.reporter.parser.Json;
 
@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class CodeSearchEndpoint {
-    private final RequestBuilder requests;
+    private final RequestService requests;
     private final String org;
 
     public record TextMatch(String fragment, String property) {}
@@ -24,7 +24,7 @@ public class CodeSearchEndpoint {
 
     public CodeSearchEndpoint(HttpClient client, String token, String org) {
         this.org = org;
-        this.requests = new RequestBuilder(client, token);
+        this.requests = new RequestService(client, token);
     }
 
     public Collection<SearchResult> searchInFile(String content, String filename) {

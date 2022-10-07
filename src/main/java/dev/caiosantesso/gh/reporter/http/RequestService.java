@@ -21,12 +21,12 @@ import static java.net.http.HttpResponse.BodyHandlers.discarding;
 import static java.net.http.HttpResponse.BodyHandlers.ofInputStream;
 import static java.util.Objects.requireNonNull;
 
-public class RequestBuilder {
+public class RequestService {
     private final HttpClient client;
     private final String token;
     private static final String AUTH_HEADER = "Authorization";
 
-    public RequestBuilder(HttpClient client, String token) {
+    public RequestService(HttpClient client, String token) {
         this.client = requireNonNull(client);
         this.token = requireNonNull(token);
     }
